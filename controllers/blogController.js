@@ -8,7 +8,7 @@ const tableName = "Blogs";
 /**
  * create table (Blogs)
  */
-const createBlogTable = (req, res) => {
+const createBlogTable = () => {
   try {
     const tablePromise = dynamodb
       .listTables({})

@@ -3,18 +3,19 @@ const uuid = require("uuid");
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const mailgun = require("mailgun-js");
-const DOMAIN = "sandbox95f7700f94204f7d9c1564f6176d798b.mailgun.org";
+const DOMAIN = "sandbox782a117890714e45bbd422d474d26731.mailgun.org";
 const mg = mailgun({ apiKey: process.env.MAILGUN_APIKEY, domain: DOMAIN });
 
 const dynamodb = awsConfig.dynamodb;
 const docClient = awsConfig.docClient;
 const tableName = "Users";
 const key = "authentication";
+const digitCodeCount = 6;
 
 /**
  * create table (Users)
  */
-const createAuthTable = (req, res) => {
+const createAuthTable = () => {
   try {
     const tablePromise = dynamodb
       .listTables({})
@@ -50,7 +51,7 @@ const createAuthTable = (req, res) => {
 };
 
 /**
- * generated hashed password (sha512)
+ * generate hashed password (sha512)
  * @param { string } password 
  */
 const generateHashdPassword = (password) => {
@@ -58,6 +59,14 @@ const generateHashdPassword = (password) => {
   hash.update(password);
   return hash.digest("hex").toString();
 };
+
+/**
+ * generate random digit code
+ * @param { number } n 
+ */
+const randomDigitCode = (n) => {
+  return Math.floor(Math.pow(10, n-1) + Math.random() * 9 * Math.pow(10, n-1));
+}
 
 /**
  * registration
@@ -103,7 +112,7 @@ const registration = (req, res) => {
           sendMail(data, res);
         } else {
           res.status(400).json({
-            result: "account_exists",
+            result: "Account exists",
           });
         }
       }
@@ -164,7 +173,7 @@ const activateAccount = (req, res) => {
             if (err) {
               res.status(403).json({ result: "Invalid credentail" });
             } else {
-              res.status(200).json({ result: "activated" });
+              res.status(200).json({ result: "Activated" });
             }
           });
         },
@@ -199,7 +208,7 @@ const login = (req, res) => {
         if (data.Item == undefined) {
           res
             .status(400)
-            .json({ result: "Users with this account does not exist" });
+            .json({ result: "User with this account does not exist" });
         } else {
           if (hashed_password === data.Item.password) {
             res.status(200).send({
@@ -210,7 +219,7 @@ const login = (req, res) => {
             });
           } else {
             res.status(403).json({
-              result: "credentials are incorrect.",
+              result: "Credentials are incorrect",
             });
           }
         }
@@ -242,16 +251,12 @@ const forgotPassword = (req, res) => {
       if (err) {
         res.status(err.statusCode).json({ result: err.message });
       } else {
-        if (data.Item.uid != undefined) {
-          const token = jwt.sign(
-            { _id: data.Item.uid },
-            process.env.RESET_PASSWORD_KEY,
-            { expiresIn: "20m" },
-          );
+        if (data.Item != undefined) {
+          const token = randomDigitCode(digitCodeCount);
           const emailData = {
             from: "noreply@hello.com",
             to: email,
-            subject: "Token",
+            subject: "6 digit code",
             html: `<p>${token}</p>`,
           };
           // update user (token)
@@ -260,9 +265,10 @@ const forgotPassword = (req, res) => {
             Key: {
               email: email,
             },
-            UpdateExpression: "set authtoken = :authtoken",
+            UpdateExpression: "set authtoken = :authtoken, updatedAt = :updatedAt",
             ExpressionAttributeValues: {
               ":authtoken": token,
+              ":updatedAt": Date().toString(),
             },
             ReturnValues: "UPDATED_NEW",
           };
@@ -295,62 +301,56 @@ const forgotPassword = (req, res) => {
 const resetPassword = (req, res) => {
   try {
     const { token, email, newPassword } = req.body;
-    if (token) {
-      jwt.verify(
-        token,
-        process.env.RESET_PASSWORD_KEY,
-        function (err, decodedToken) {
-          if (err) {
-            return res
-              .status(400)
-              .json({ error: "Incorrect token or it is expired" });
-          }
+    // get token and updatedAt in db
+    let params = {
+      TableName: tableName,
+      Key: {
+        email: email,
+      },
+    };
 
-          // find the user by token
-          let params = {
-            TableName: tableName,
-            Key: {
-              email: email,
-            },
-          };
+    docClient.get(params, function (err, data) {
+      if (err) {
+        res.status(err.statusCode).json({ result: err.message });
+      } else {
+        if (data.Item == undefined) {
+          res
+            .status(400)
+            .json({ result: "User with this account does not exist" });
+        } else {
+          const lastUpdatedAt = new Date(data.Item.updatedAt)
+          const diffSeconds = (new Date().getTime() - lastUpdatedAt.getTime()) / 1000;
+          if (token != data.Item.authtoken) {
+            res.status(400).json({ result: "Invalid token"});
+          } else if (diffSeconds > 1200) { // expire time is "20m"
+            res.status(400).json({ result: "Token is expired"});
+          } else {
+            params = {
+              TableName: tableName,
+              Key: {
+                email: email,
+              },
+              UpdateExpression:
+                "set password = :password, updatedAt=:updatedAt, authtoken=:authtoken",
+              ExpressionAttributeValues: {
+                ":password": generateHashdPassword(newPassword),
+                ":updatedAt": Date().toString(),
+                ":authtoken": "",
+              },
+              ReturnValues: "UPDATED_NEW",
+            };
 
-          docClient.get(params, function (err, data) {
-            if (err) {
-              res.status(err.statusCode).json({ error: err.message });
-            } else {
-              if (data.Item.authtoken == token) {
-                params = {
-                  TableName: tableName,
-                  Key: {
-                    email: data.Item.email,
-                  },
-                  UpdateExpression:
-                    "set password = :password, updatedAt=:updatedAt, authtoken=:authtoken",
-                  ExpressionAttributeValues: {
-                    ":password": generateHashdPassword(newPassword),
-                    ":updatedAt": Date().toString(),
-                    ":authtoken": "",
-                  },
-                  ReturnValues: "UPDATED_NEW",
-                };
-
-                docClient.update(params, function (err, data) {
-                  if (err) {
-                    res.status(err.statusCode).json({ error: err.message });
-                  } else {
-                    res.status(200).json({ result: "success" });
-                  }
-                });
+            docClient.update(params, function (err, data) {
+              if (err) {
+                res.status(err.statusCode).json({ error: err.message });
               } else {
-                res
-                  .status(400)
-                  .json({ error: "User with this token does not exist" });
+                res.status(200).json({ result: "Password is changed" });
               }
-            }
-          });
-        },
-      );
-    }
+            });
+          }
+        }
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: err });
   }

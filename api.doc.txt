@@ -14,16 +14,21 @@
     - response
       * Error
         statusCode  body
-        400         { result: "account_exists" }
+        400         { result: "Account exists" }
         403         { result: "Email sending Error" }
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
         200         { result: "Email has been sent" }
+    
+    - Email
+      subject: Account Activiation Link
+      html: link
 
 2. Activate account (POST) /auth/activate/:token
     - request
       token
+
     - response
       * Error
         statusCode  body
@@ -31,7 +36,7 @@
         403         { result: "Invalid credentail" }
       * OK
         statusCode  body
-        200         { result: "activated" }
+        200         { result: "Activated" }
 
 3. Login (GET) /auth/login
     - request
@@ -39,11 +44,12 @@
         email: "xxx@xxx.xxx",
         password: "xxx",
       }
+      
     - response
       * Error
         statusCode  body
-        400         { result: "Users with this account does not exist" }
-        403         { result: "credentials are incorrect." }
+        400         { result: "User with this account does not exist" }
+        403         { result: "Credentials are incorrect" }
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
@@ -74,7 +80,7 @@
         200         { result: "Email has been sent" }
     
     - Email
-      subject: Token
+      subject: 6 digit code
       html: token (6 digit code)
 
 5. ResetPassword (POST) /auth/resetpassword
@@ -84,23 +90,21 @@
       }
       body: {
         "email": "xxx@xxx.xxx",
-        "token": "xxx", // check email
+        "token": "xxxxxx", // check email (6 digit code)
         "newPassword": "xxx",
       }
     
     - response
       * Error
         statusCode  body
-        400         { result: "Incorrect token or it is expired" }
-        403         { result: "Email sending Error" }
+        400         { result: "User with this account does not exist" }
+        400         { result: "Invalid token" }
+        400         { result: "Invalid token" }
+        403         { result: "Token is expired" }
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
-        200         { result: "Email has been sent" }
-    
-    - Email
-      subject: Token
-      html: token
+        200         { result: "Password is changed" }
 
 
 
@@ -124,7 +128,7 @@
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
-        200         { result: "succes" }
+        200         { result: "success" }
 
 2. Read Blog (GET) /blog
     - request
@@ -166,7 +170,7 @@
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
-        200         { result: "succes" }
+        200         { result: "success" }
 
 4. Delete Blog (DELET) /blog
     - request
@@ -180,4 +184,4 @@
         ???         { result: ??? } ( -- wip -- )
       * OK
         statusCode  body
-        200         { result: "succes" }
+        200         { result: "success" }
