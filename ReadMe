@@ -1,0 +1,6 @@
+1. aws dynamodb local test
+    - extract dynamodb_local_test.zip inside the code directory
+    - run the following command (https://medium.com/quick-code/node-js-restful-api-with-dynamodb-local-7e342a934a24)
+      $ java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb
+
+2. get mailgun api key and set it .env file

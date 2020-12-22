@@ -1,0 +1,183 @@
+/** Auth API **/
+
+1. Register (POST) /auth/register
+    - request
+      Header: {
+        "Content-Type": "application/json",
+      }
+      body: {
+        "name": "xxx",
+        "email": "xxx@xxx.xxx"
+        "password": "xxx",
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        400         { result: "account_exists" }
+        403         { result: "Email sending Error" }
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "Email has been sent" }
+
+2. Activate account (POST) /auth/activate/:token
+    - request
+      token
+    - response
+      * Error
+        statusCode  body
+        400         { result: "Incorrect or Expired Link" }
+        403         { result: "Invalid credentail" }
+      * OK
+        statusCode  body
+        200         { result: "activated" }
+
+3. Login (GET) /auth/login
+    - request
+      param: {
+        email: "xxx@xxx.xxx",
+        password: "xxx",
+      }
+    - response
+      * Error
+        statusCode  body
+        400         { result: "Users with this account does not exist" }
+        403         { result: "credentials are incorrect." }
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { 
+                      userId: "xxx",
+                      name: "xxx",
+                      createdAt: "xxx",
+                      updatedAt: "xxx", 
+                    }
+
+4. ForgotPassword (POST) /auth/forgotpassword
+    - request
+      Header: {
+        "Content-Type": "application/json",
+      }
+      body: {
+        "email": "xxx@xxx.xxx"
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        400         { result: "User with this email doesn't exist" }
+        403         { result: "Email sending Error" }
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "Email has been sent" }
+    
+    - Email
+      subject: Token
+      html: token (6 digit code)
+
+5. ResetPassword (POST) /auth/resetpassword
+    - request
+      Header: {
+        "Content-Type": "application/json",
+      }
+      body: {
+        "email": "xxx@xxx.xxx",
+        "token": "xxx", // check email
+        "newPassword": "xxx",
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        400         { result: "Incorrect token or it is expired" }
+        403         { result: "Email sending Error" }
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "Email has been sent" }
+    
+    - Email
+      subject: Token
+      html: token
+
+
+
+
+/** Blog API **/
+
+1. Create Blog (PUT) /blog
+    - request
+      Header: {
+        "Content-Type": "application/json",
+      }
+      body: {
+        "title": "xxx",
+        "content": "xxx",
+        "userId": "xxx", // get userId in login response
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "succes" }
+
+2. Read Blog (GET) /blog
+    - request
+      param: {
+        "uid": "xxx", // blog id (if uid is undefined, return all blogs)
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { 
+                      uid: "uid",
+                      title: "title",
+                      content: "content",
+                      userId: "userId",
+                      createdAt: "createdAt",
+                      updatedAt: "updatedAt",
+                    }
+
+3. Update Blog (POST) /blog
+    - request
+      Header: {
+        "Content-Type": "application/json",
+      }
+      param: {
+        "uid": "xxx", // blog id
+      }
+      body: {
+        "title": "xxx",
+        "content": "content",
+      }
+    
+    - response
+      * Error
+        statusCode  body
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "succes" }
+
+4. Delete Blog (DELET) /blog
+    - request
+      param: {
+        "uid": "xxx", // blog id
+      }
+
+    - response
+      * Error
+        statusCode  body
+        ???         { result: ??? } ( -- wip -- )
+      * OK
+        statusCode  body
+        200         { result: "succes" }
